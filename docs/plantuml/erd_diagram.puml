@@ -1,0 +1,97 @@
+@startuml SmartAutoCar_ERD
+!theme plain
+skinparam linetype ortho
+title Smart Auto — Entity Relationship (from Supabase schema)
+
+entity "auth.users" as auth_users {
+  * id : uuid <<PK>>
+  --
+  email
+  ...
+}
+
+entity "profiles" as profiles {
+  * id : uuid <<PK, FK→auth.users>>
+  --
+  name : text
+  phone : text
+  car_model : text
+  profile_image : text
+  latitude : double
+  longitude : double
+  created_at : timestamptz
+  updated_at : timestamptz
+}
+
+entity "issues" as issues {
+  * id : uuid <<PK>>
+  --
+  * user_id : uuid <<FK>>
+  description : text
+  image_url : text
+  voice_url : text
+  ai_response : jsonb
+  created_at : timestamptz
+}
+
+entity "requests" as requests {
+  * id : uuid <<PK>>
+  --
+  * user_id : uuid <<FK>>
+  title : text
+  description : text
+  image_url : text
+  price : numeric(12,2)
+  latitude : double
+  longitude : double
+  * status : request_status <<enum>>
+  created_at : timestamptz
+}
+
+entity "request_responses" as rr {
+  * id : uuid <<PK>>
+  --
+  * request_id : uuid <<FK>>
+  * driver_id : uuid <<FK→profiles>>
+  * status : response_status <<enum>>
+  created_at : timestamptz
+  ..
+  <<unique>> (request_id, driver_id)
+}
+
+entity "chats" as chats {
+  * id : uuid <<PK>>
+  --
+  * request_id : uuid <<FK, unique>>
+  created_at : timestamptz
+}
+
+entity "messages" as messages {
+  * id : uuid <<PK>>
+  --
+  * chat_id : uuid <<FK>>
+  * sender_id : uuid <<FK→profiles>>
+  message : text
+  image_url : text
+  read_at : timestamptz
+  created_at : timestamptz
+}
+
+note bottom of requests
+  **request_status:** open | accepted | completed
+end note
+
+note bottom of rr
+  **response_status:** pending | accepted
+end note
+
+auth_users ||--|| profiles : "1:1 trigger handle_new_user"
+profiles ||--o{ issues : "creates"
+profiles ||--o{ requests : "owns"
+requests ||--o{ rr : "receives"
+profiles ||--o{ rr : "driver"
+requests ||--|| chats : "1:1"
+chats ||--o{ messages : "contains"
+profiles ||--o{ messages : "sends"
+
+@enduml

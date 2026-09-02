@@ -1,0 +1,26 @@
+@startuml
+!theme plain
+title Smart Auto — Sequence: AI issue + Storage buckets (schema-aligned)
+
+actor User
+participant "Flutter app" as App
+participant "Supabase Storage" as St
+database "public.issues" as Iss
+participant "AI API\n(e.g. Gemini)" as AI
+
+User -> App: Submit photo / voice
+App -> St: PUT **issue_images** /\n**voice_records**\npath {user_id}/...
+St --> App: URL
+App -> Iss: INSERT\n(image_url, voice_url, user_id)
+Iss --> App: issue id
+
+App -> AI: Run diagnosis
+AI --> App: JSON result
+App -> Iss: UPDATE **ai_response** (jsonb)
+App --> User: Show result
+
+note right of St
+  Buckets from migration:\n**profile_images**, **issue_images**,\n**voice_records**, **chat_images**
+end note
+
+@enduml

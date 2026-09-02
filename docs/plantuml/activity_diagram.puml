@@ -1,0 +1,40 @@
+@startuml SmartAutoCar_Activity
+!theme plain
+title Smart Auto — Activity: help request → accept → chat (schema-aligned)
+
+|Requester|
+start
+:Register / login (auth.users);
+:Trigger **handle_new_user** → row in **profiles**;
+:Create **requests** (status = open);
+note right
+  RLS: insert as owner (user_id = auth.uid())
+end note
+
+|Driver|
+:List **open** requests\n(RLS: status = 'open');
+:Insert **request_responses**\n(status = pending);
+note right
+  unique (request_id, driver_id)
+end note
+
+|Requester|
+:Review **request_responses**;
+:Accept driver:\nUPDATE **request_responses** → accepted\nUPDATE **requests** → accepted;
+
+|System|
+:Ensure **chats** row\n(1:1 with request_id);
+note right
+  RLS: **is_chat_participant**()\nrequester OR accepted driver
+end note
+
+|Users|
+:Send and receive **messages**\n(both requester and driver);
+floating note right
+  Realtime on **messages**;
+  **read_at** for read receipts
+end note
+
+stop
+
+@enduml

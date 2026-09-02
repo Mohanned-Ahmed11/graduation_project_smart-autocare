@@ -1,0 +1,23 @@
+Supabase Dashboard checklist (Smart Auto Car)
+=============================================
+
+Project ref: dujebmysaziouoepgdji (see supabase/.temp/project-ref)
+
+1) Authentication → URL configuration
+   - Add redirect: com.smartautocar.smart_auto_car://login-callback
+   - Matches lib/core/config/auth_redirect.dart, AndroidManifest, iOS URL scheme.
+
+2) Authentication → Providers (optional)
+   - Enable Google / Facebook if using social buttons in login_screen.dart.
+   - Paste OAuth client IDs per Supabase docs.
+
+3) Database → Replication (Realtime)
+   - Confirm realtime enabled for: messages, requests, request_responses
+   - Migration 20250405140000_realtime_publication.sql adds publication entries.
+
+4) Storage
+   - Buckets: profile_images, issue_images, voice_records, chat_images
+   - If db push ever failed on storage.buckets inserts, create these in Dashboard.
+
+5) Flutter env
+   - Copy .env.example to .env with SUPABASE_URL and SUPABASE_ANON_KEY from Project Settings → API.

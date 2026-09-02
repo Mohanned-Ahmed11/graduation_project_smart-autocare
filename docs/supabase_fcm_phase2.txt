@@ -1,0 +1,113 @@
+Phase 2 — Push notifications (FCM) for new driver offers
+=========================================================
+
+Prerequisites
+-------------
+- Firebase project with Cloud Messaging enabled.
+- Android: google-services.json in android/app/.
+- iOS: GoogleService-Info.plist, push capability, APNs key in Firebase.
+- Flutter: firebase_core + firebase_messaging; request notification permission; obtain FCM token.
+
+Database (already in repo migration)
+------------------------------------
+- profiles.fcm_token (text, nullable): upsert from the app after login (RPC or direct update with RLS allowing users to update own row only).
+
+App flow
+--------
+1. On sign-in / token refresh, write FCM token to profiles.fcm_token.
+2. On logout, clear token (optional but recommended).
+
+Supabase → FCM
+--------------
+Option A — Database Webhook on public.request_responses INSERT (filter status = pending):
+  - Invoke Edge Function with payload { request_id, driver_id, ... }.
+
+Option B — Supabase Realtime is not enough for killed-app delivery; use webhook + Edge Function.
+
+Edge Function (sketch)
+----------------------
+- Verify webhook secret / service role only inside function.
+- Load request row: title, user_id (requester).
+- Load requester profile: fcm_token.
+- If no token, exit 200.
+- Call FCM HTTP v1 (OAuth2 with service account JSON in function secrets).
+- Data payload: requestId, route hint for deep link.
+
+Deep links
+----------
+- go_router: e.g. /requests/mine?requestId=<uuid> to scroll/highlight or open review-offers for that request.
+
+Open chat from push (Flutter client, implemented)
+-------------------------------------------------
+- FCM **data-only** payload keys: `chatId` (required), `requestId` (optional).
+- App handles `FirebaseMessaging.onMessageOpenedApp` and `getInitialMessage` and calls
+  `router.go('/chat/<chatId>?requestId=<requestId>')`.
+- Edge Function / webhook should send the same keys so a tap opens the correct thread.
+
+Security
+--------
+- Never expose FCM server key in the Flutter client; only Edge Function with secrets.
+- Rate-limit or dedupe if drivers spam interest.
+
+Chat message push (implemented)
+--------------------------------
+- Migration `20250419120000_profiles_active_chat.sql`: `profiles.active_chat_id`, `profiles.active_chat_at`
+  so the app can signal “this chat is open”; the Edge Function skips FCM for recipients who refreshed
+  that state within the last ~90 seconds.
+- Edge Function `supabase/functions/send-chat-message-push`: verifies the caller’s JWT, checks
+  `is_chat_participant`, resolves other participants (requester + drivers pending/accepted), sends FCM v1
+  with `notification` + `data` keys `chatId` and `requestId` (strings) for the existing Flutter deep link.
+- Flutter: after a successful text/image send, invokes the function; `ChatScreen` updates/clears
+  `active_chat_id` / `active_chat_at` on load, on a 45s heartbeat, on app pause, and on dispose.
+
+Deploy (CLI)
+~~~~~~~~~~~~
+Prerequisite: `npx supabase login` and link the app folder to your project once:  
+`npx supabase link --project-ref <your-ref>` (ref is in the Supabase dashboard URL).
+
+**Two different Firebase files (do not mix them up):**
+- **android/app/google-services.json** — client config for the Flutter/Android app only.
+- **Service account JSON** — for the Edge Function: Firebase Console → Project settings → **Service accounts**
+  → **Generate new private key**. Save it somewhere **outside git** (e.g. `Downloads\smartautocar-sa.json`).
+
+**1. Database — `active_chat` columns**
+
+If `npx supabase db push` fails because older migrations were already applied manually, run this once in
+the Supabase Dashboard → **SQL Editor**:
+
+```sql
+alter table public.profiles
+  add column if not exists active_chat_id uuid references public.chats (id) on delete set null;
+alter table public.profiles
+  add column if not exists active_chat_at timestamptz;
+```
+
+Otherwise use: `npx supabase db push` (answer **Y** when prompted).
+
+**2. Edge Function secret (Windows PowerShell)**
+
+From your project root (`SmartAutoCar`), with `PATH` to your downloaded **service account** JSON (not
+`google-services.json`):
+
+```powershell
+cd "D:\Graduation Project 2025\SmartAutoCar"
+$json = Get-Content -LiteralPath "C:\Users\Administrator\Downloads\your-firebase-adminsdk.json" -Raw
+npx supabase secrets set "FIREBASE_SERVICE_ACCOUNT_JSON=$json"
+```
+
+Adjust `-LiteralPath` to the real file path. If the CLI complains about length/special characters, use an
+env file instead: create `supabase\.env.functions` (gitignored) with a single line  
+`FIREBASE_SERVICE_ACCOUNT_JSON={"type":"service_account",...}`  
+then: `npx supabase secrets set --env-file supabase\.env.functions`
+
+**3. Deploy the function**
+
+```powershell
+cd "D:\Graduation Project 2025\SmartAutoCar"
+npx supabase functions deploy send-chat-message-push
+```
+
+Dashboard: **Project → Edge Functions** to confirm `send-chat-message-push` is live.
+
+If `FIREBASE_SERVICE_ACCOUNT_JSON` is unset, the function returns HTTP 200 with `skipped: true` so the app
+does not break before you configure Firebase.

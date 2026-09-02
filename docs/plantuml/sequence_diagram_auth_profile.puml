@@ -1,0 +1,28 @@
+@startuml
+!theme plain
+title Smart Auto — Sequence: sign up & automatic profile (migration triggers)
+
+actor User
+participant "Flutter app" as App
+participant "Supabase Auth" as Auth
+database "auth.users" as AUsers
+database "public.profiles" as Prof
+
+User -> App: Register (email/password)
+App -> Auth: signUp()
+Auth -> AUsers: INSERT user
+activate AUsers
+AUsers -> Prof: AFTER INSERT **on_auth_user_created**
+activate Prof
+Prof -> Prof: **handle_new_user()**\nINSERT profiles(id, name)
+Prof --> AUsers
+deactivate Prof
+deactivate AUsers
+Auth --> App: session
+App --> User: Logged in
+
+User -> App: Update profile / image
+App -> Prof: UPDATE profiles\n(RLS: own row)
+Prof --> App: OK
+
+@enduml

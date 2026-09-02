@@ -1,0 +1,49 @@
+@startuml
+!theme plain
+title Smart Auto — Sequence: request, response, chat + Realtime tables
+
+actor Requester as R
+actor Driver as D
+participant "Flutter app" as App
+database "requests" as Req
+database "request_responses" as RR
+database "chats" as Chat
+database "messages" as Msg
+participant "Supabase Realtime" as RT
+
+R -> App: Create request (status open)
+App -> Req: INSERT
+Req --> App: request id
+
+D -> App: Browse open requests
+App -> Req: SELECT\n(RLS: open or own)
+Req --> App: list
+
+D -> App: Submit interest
+App -> RR: INSERT (pending)
+RR --> App: ok
+
+R -> App: Accept driver
+App -> RR: UPDATE → accepted
+App -> Req: UPDATE → accepted
+
+R -> App: Open chat
+App -> Chat: INSERT / SELECT\n(unique request_id)
+Chat --> App: chat id
+
+R -> App: Send message
+App -> Msg: INSERT
+Msg --> RT: WAL → broadcast
+RT --> D: new row
+
+D -> App: Reply
+App -> Msg: INSERT
+Msg --> RT: broadcast
+RT --> R: new row
+
+note right of RT
+  Publication includes **messages**,
+  **requests**, **request_responses**
+end note
+
+@enduml

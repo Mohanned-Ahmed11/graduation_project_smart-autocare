@@ -1,0 +1,92 @@
+@startuml SmartAuto_Graduation_Proposal
+!theme plain
+skinparam backgroundColor #FAFBFF
+skinparam defaultFontSize 11
+skinparam packageStyle rectangle
+skinparam package {
+  BackgroundColor #EEF2FF
+  BorderColor #7289FF
+  FontStyle bold
+}
+skinparam rectangle {
+  BackgroundColor #FFFFFF
+  BorderColor #3D4A8C
+  roundCorner 12
+}
+skinparam note {
+  BackgroundColor #FFF9E6
+  BorderColor #D4A017
+}
+
+title **Graduation project proposal — Smart Auto**\n<size:10>Helping drivers understand car problems and find help</size>\n\n<img:../../assets/logo.png{scale=0.16}>
+
+legend top left
+  **Easy English:** This picture tells the **story** of the project:
+  the **problem**, our **solution**, **what the system does**, and **tools** used.
+  **Logo:** path is relative to this file (**docs/plantuml/** → **assets/logo.png**).
+end legend
+
+package "**1 — Problem (why this project exists)**" #FFE8E8 {
+  rectangle "Drivers often **do not know** what broke" as P1
+  rectangle "Getting **honest help** or a **garage** fast is **not easy**" as P2
+  rectangle "Explaining the fault **by phone** is slow and confusing" as P3
+  P1 -[hidden]d- P2
+  P2 -[hidden]d- P3
+}
+
+package "**2 — Our solution: Smart Auto**" #E8F5E9 {
+  rectangle "A **single phone app** for drivers" as S1
+  rectangle "Describe the car with **photo**, **voice**, or **text**" as S2
+  rectangle "**AI** gives a **simple** explanation" as S3
+  rectangle "**Community**: post help requests, **chat**, agree on help" as S4
+  rectangle "**Map**: see **nearby** car services" as S5
+  S1 -[hidden]d- S2
+  S2 -[hidden]d- S3
+  S3 -[hidden]d- S4
+  S4 -[hidden]d- S5
+}
+
+P3 -[#7289FF,bold]-> S1 : we build
+
+package "**3 — System analysis (what the software really does)**" #E3F2FD {
+  together {
+    rectangle "**A. Accounts**\nSign up / log in.\nSave **profile** (name, car, photo, location).\n_Uses Supabase Auth + **profiles** table._" as A1
+    rectangle "**B. AI diagnosis**\nUpload image or voice.\nStore file + create **issue** row.\nAI fills **ai_response** (JSON).\n_Uses Storage + **issues** + AI API._" as A2
+    rectangle "**C. Help & chat**\nCreate **request**. Others see **open** jobs.\n**Respond** → owner **accepts** → **chat** + **messages**.\n_Live updates: Realtime on messages & requests._" as A3
+    rectangle "**D. Map**\nShow **nearby** repair places.\n_Uses Google Maps / Places._" as A4
+  }
+}
+
+S5 -[#5B6FD9,bold]-> A1 : implements
+
+package "**4 — Tools we used (tech stack)**" #FFF8E1 {
+  rectangle "**Flutter + Dart**\nThe whole mobile app UI and logic" as T1
+  rectangle "**Supabase**\nLogin • Database (Postgres) • **Row Level Security**\nFile storage • **Realtime** websockets" as T2
+  rectangle "**Riverpod** — state\n**go_router** — navigation\n**Lottie** / **flutter_animate** — motion" as T3
+  rectangle "**Google Maps** + **Geolocator**\n**Gemini** (or similar) for AI" as T4
+  T1 -[hidden]d- T2
+  T2 -[hidden]d- T3
+  T3 -[hidden]d- T4
+}
+
+A4 -[#3D4A8C,dashed]-> T1 : built with
+
+package "**5 — Graduation value**" #F3E5F5 {
+  rectangle "Shows **analysis**, **design**, **coding**, and **cloud** skills" as G1
+  rectangle "Solves a **real-life** problem with **clear** steps" as G2
+  G1 -[hidden]d- G2
+}
+
+T4 -[hidden]d- G1
+
+note as N1
+  **Database & security** match your Supabase script:
+  **profiles**, **issues**, **requests**, **request_responses**,
+  **chats**, **messages**, storage buckets, **RLS**, triggers.
+end note
+
+N1 .. A2
+
+footer **Smart Auto** • Graduation project • PlantUML proposal diagram
+
+@enduml

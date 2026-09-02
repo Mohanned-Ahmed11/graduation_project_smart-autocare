@@ -1,0 +1,60 @@
+@startuml SmartAutoCar_UseCase
+!theme plain
+left to right direction
+title Smart Auto — Use case diagram (domain from Supabase + app)
+
+actor "Guest" as guest
+actor "Authenticated\nuser (driver / requester)" as user
+actor "Requester\n(owner)" as requester
+actor "Driver\n(helper)" as driver
+
+requester -|> user
+driver -|> user
+
+rectangle "Smart Auto (Flutter client)" {
+  usecase "Sign up / Sign in\n(Supabase Auth)" as UC_auth
+  usecase "Manage profile\n(profiles)" as UC_profile
+  usecase "Create AI diagnosis issue\n(issues + storage)" as UC_issue
+  usecase "View own issues" as UC_issues_list
+  usecase "Create help request\n(requests)" as UC_req_create
+  usecase "Browse open requests" as UC_req_open
+  usecase "Respond to request\n(request_responses)" as UC_resp
+  usecase "Accept driver response\n(update request/response)" as UC_accept
+  usecase "Open / use chat\n(chats, messages)" as UC_chat
+  usecase "Send message / image\n(messages + chat_images)" as UC_msg
+  usecase "Realtime updates\n(messages, requests, responses)" as UC_rt
+}
+
+rectangle "Supabase" {
+  usecase "RLS enforce row access" as UC_rls
+  usecase "Storage buckets\n(profile, issue, voice, chat)" as UC_storage
+}
+
+guest --> UC_auth
+user --> UC_auth
+user --> UC_profile
+user --> UC_issue
+user --> UC_issues_list
+user --> UC_req_create
+user --> UC_req_open
+user --> UC_resp
+requester --> UC_accept
+user --> UC_chat
+user --> UC_msg
+user --> UC_rt
+
+UC_issue ..> UC_storage : <<include>>
+UC_msg ..> UC_storage : <<include>>
+UC_profile ..> UC_storage : <<include>>
+UC_auth ..> UC_rls : <<include>>
+UC_issue ..> UC_rls
+UC_req_create ..> UC_rls
+UC_chat ..> UC_rls
+
+note right of UC_rt
+  Realtime publication on:
+  **messages**, **requests**,
+  **request_responses**
+end note
+
+@enduml

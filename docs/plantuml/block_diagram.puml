@@ -1,0 +1,29 @@
+@startuml SmartAutoCar_Block
+!theme plain
+title Smart Auto — High-level block diagram (app + Supabase + externals)
+
+rectangle "Flutter app (Smart Auto)" as Flutter #E8EEFF
+rectangle "Supabase Auth" as SBAuth #E0F0E8
+rectangle "PostgreSQL + RLS" as PG #E0F0E8
+rectangle "Storage buckets" as ST #E0F0E8
+rectangle "Realtime" as RT #E0F0E8
+rectangle "Maps / Places" as Maps #FFF4E0
+rectangle "AI (Gemini)" as GenAI #FFF4E0
+
+Flutter --> SBAuth : JWT session
+Flutter --> PG : PostgREST
+Flutter --> ST : files
+Flutter --> RT : WebSocket
+Flutter --> Maps : location
+Flutter --> GenAI : diagnosis
+
+SBAuth .. PG : profile sync
+PG .. ST : URLs in rows
+PG .. RT : live data
+
+note bottom of PG
+  Tables: profiles, issues, requests,
+  request_responses, chats, messages
+end note
+
+@enduml
