@@ -10,4 +10,4 @@ Flutter app: AI-assisted car diagnosis, help requests, maps, and Supabase-backed
 
 Gemini and other API keys are read only from `.env` or `--dart-define=` (see `lib/core/config/env.dart`); they are not hardcoded in Dart.
 
-Repository: [github.com/kamelfcis/smart-autocare](https://github.com/kamelfcis/smart-autocare)
+
